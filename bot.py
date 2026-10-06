@@ -710,6 +710,36 @@ async def cmd_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 
+def start_health_server() -> None:
+    """Мини HTTP-сервер на $PORT: для хостингов, требующих открытый порт (Render и т.п.)."""
+    port = os.getenv("PORT")
+    if not port:
+        return
+    import threading
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            body = b"TRADENBOT is running"
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    def run():
+        try:
+            HTTPServer(("0.0.0.0", int(port)), Handler).serve_forever()
+        except Exception:
+            log.exception("Health-сервер не запущен на порту %s", port)
+
+    threading.Thread(target=run, daemon=True).start()
+    log.info("Health-сервер слушает порт %s", port)
+
+
 async def keepalive(context: ContextTypes.DEFAULT_TYPE) -> None:
     """Пинг самого себя — чтобы бесплатный хостинг не засыпал (webhook-режим)."""
     if PUBLIC_URL:
@@ -770,6 +800,7 @@ def main() -> None:
         )
     else:
         log.info("Запуск в режиме polling (удалённый доступ)")
+        start_health_server()
         app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
