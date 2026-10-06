@@ -1,0 +1,18 @@
+services:
+  - type: worker
+    runtime: python
+    name: tradenbot
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      - key: BOT_TOKEN
+        sync: false          # значение вставите в веб-панели Render
+      - key: OWNER_USERNAME
+        value: ws3xx3
+      - key: PYTHON_VERSION
+        value: 3.12.4
+    disk:
+      name: tradenbot-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
